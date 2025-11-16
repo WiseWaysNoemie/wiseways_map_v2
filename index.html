@@ -1,0 +1,611 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>WiseWays – Max-Neef Question Map v2</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+  background: #020720;
+  color: #f9fafb;
+  overflow: hidden;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 18px;
+  background: #020720;
+  border-bottom: 1px solid #0b1220;
+  height: 60px;
+}
+
+header h1 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.stats {
+  display: flex;
+  gap: 16px;
+  font-size: 12px;
+  color: #9ca3af;
+  margin-right: 16px;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.stat-value {
+  color: #0ea5e9;
+  font-weight: 600;
+}
+
+button {
+  border-radius: 6px;
+  border: none;
+  padding: 6px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  background: #0ea5e9;
+  color: #0b1120;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+button:hover {
+  background: #0284c7;
+  transform: translateY(-1px);
+}
+
+button.ghost {
+  background: transparent;
+  color: #e5e7eb;
+  border: 1px solid #1f2937;
+}
+
+button.ghost:hover {
+  background: #1f2937;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+  transform: none;
+}
+
+button.danger {
+  background: #ef4444;
+  color: white;
+}
+
+#controls {
+  display: flex;
+  align-items: center;
+  padding: 8px 18px;
+  gap: 8px;
+  border-bottom: 1px solid #0b1220;
+  background: #020720;
+  height: 50px;
+}
+
+#qInput {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #1f2937;
+  background: #0f172a;
+  color: #f9fafb;
+  font-size: 13px;
+}
+
+#qInput::placeholder {
+  color: #6b7280;
+}
+
+.filters {
+  display: flex;
+  gap: 8px;
+  padding: 8px 18px;
+  background: #0f172a;
+  border-bottom: 1px solid #0b1220;
+  flex-wrap: wrap;
+  align-items: center;
+  min-height: 44px;
+}
+
+.filter-group {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.filter-label {
+  font-size: 11px;
+  color: #9ca3af;
+  margin-right: 4px;
+}
+
+.filter-btn {
+  padding: 4px 10px;
+  font-size: 11px;
+  border-radius: 4px;
+  background: #1f2937;
+  color: #9ca3af;
+  border: 1px solid #374151;
+}
+
+.filter-btn.active {
+  background: #0ea5e9;
+  color: #0b1120;
+  border-color: #0ea5e9;
+}
+
+main {
+  display: flex;
+  height: calc(100vh - 162px);
+}
+
+#graphWrap {
+  position: relative;
+  flex: 1.8;
+  background: #020720;
+  overflow: hidden;
+}
+
+#graphSvg {
+  width: 100%;
+  height: 100%;
+}
+
+.minimap {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  width: 180px;
+  height: 140px;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid #1f2937;
+  border-radius: 8px;
+  padding: 4px;
+}
+
+.minimap-title {
+  font-size: 10px;
+  color: #9ca3af;
+  text-align: center;
+  margin-bottom: 4px;
+}
+
+#minimapCanvas {
+  width: 100%;
+  height: calc(100% - 20px);
+  border-radius: 4px;
+}
+
+#legend {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  font-size: 11px;
+  color: #9ca3af;
+  background: rgba(15, 23, 42, 0.95);
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #111827;
+  max-width: 420px;
+}
+
+#legend div {
+  margin-bottom: 4px;
+}
+
+#panel {
+  flex: 1;
+  border-left: 1px solid #0b1220;
+  background: #020720;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#tabs {
+  display: flex;
+  gap: 4px;
+  padding: 8px 8px 0 8px;
+  background: #0f172a;
+}
+
+#tabs button {
+  flex: 1;
+  background: transparent;
+  color: #9ca3af;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  padding: 8px;
+  font-size: 12px;
+}
+
+#tabs button:hover {
+  background: rgba(255,255,255,0.05);
+  transform: none;
+}
+
+#tabs button.active {
+  color: #0ea5e9;
+  border-bottom-color: #0ea5e9;
+  background: transparent;
+}
+
+.tab-content {
+  display: none;
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+#panelTitle {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  color: #f9fafb;
+}
+
+#panelBody {
+  white-space: pre-wrap;
+  font-size: 12px;
+  color: #d1d5db;
+  background: #0f172a;
+  border-radius: 6px;
+  border: 1px solid #1f2937;
+  padding: 10px;
+  margin-bottom: 16px;
+  line-height: 1.6;
+}
+
+.section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #f9fafb;
+  margin: 16px 0 8px 0;
+}
+
+.badge {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.badge.answered {
+  background: #10b981;
+  color: white;
+}
+
+.badge.unanswered {
+  background: #6b7280;
+  color: white;
+}
+
+#panelRelated {
+  list-style: none;
+  padding-left: 0;
+  margin: 8px 0;
+}
+
+#panelRelated li {
+  border-radius: 6px;
+  border: 1px solid #1f2937;
+  padding: 8px;
+  margin-bottom: 6px;
+  background: #0f172a;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+#panelRelated li:hover {
+  background: #1f2937;
+  border-color: #374151;
+  transform: translateX(2px);
+}
+
+.response-form {
+  background: #0f172a;
+  border: 1px solid #1f2937;
+  border-radius: 6px;
+  padding: 12px;
+  margin-top: 12px;
+}
+
+.response-form textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #1f2937;
+  background: #020720;
+  color: #f9fafb;
+  font-size: 12px;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.response-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  justify-content: flex-end;
+}
+
+.room-card {
+  background: #0f172a;
+  border: 1px solid #1f2937;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.room-card:hover {
+  border-color: #0ea5e9;
+  transform: translateY(-2px);
+}
+
+.room-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.room-name {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.room-participants {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.room-theme {
+  font-size: 12px;
+  color: #9ca3af;
+  margin-bottom: 8px;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: #6b7280;
+}
+
+.search-box {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #1f2937;
+  background: #0f172a;
+  color: #f9fafb;
+  font-size: 12px;
+  margin-bottom: 12px;
+}
+
+.modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal.active {
+  display: flex;
+}
+
+.modal-content {
+  background: #0f172a;
+  border: 1px solid #1f2937;
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 600px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.modal-title {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.modal-close {
+  background: transparent;
+  color: #9ca3af;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.progress-bar {
+  height: 4px;
+  background: #1f2937;
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #0ea5e9, #10b981);
+  transition: width 0.3s ease;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1f2937;
+  border-radius: 4px;
+}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="title">
+      <h1>WiseWays – Max-Neef Question Map</h1>
+    </div>
+    <div class="header-actions">
+      <div class="stats">
+        <div class="stat-item">
+          <span>Questions:</span>
+          <span class="stat-value" id="statQuestions">0</span>
+        </div>
+        <div class="stat-item">
+          <span>Answered:</span>
+          <span class="stat-value" id="statAnswered">0</span>
+        </div>
+        <div class="stat-item">
+          <span>Rooms:</span>
+          <span class="stat-value" id="statRooms">0</span>
+        </div>
+      </div>
+      <button id="seedBtn" class="ghost">Seed demo</button>
+      <button id="resetBtn" class="ghost danger">Reset</button>
+    </div>
+  </header>
+
+  <section id="controls">
+    <input id="qInput" type="text" placeholder="Add a question (English or French)…" />
+    <button id="addBtn">Add Question</button>
+    <button id="guidedModeBtn" class="ghost">Guided Mode</button>
+  </section>
+
+  <div class="filters">
+    <div class="filter-group">
+      <span class="filter-label">Status:</span>
+      <button class="filter-btn active" data-filter="status" data-value="all">All</button>
+      <button class="filter-btn" data-filter="status" data-value="answered">Answered</button>
+      <button class="filter-btn" data-filter="status" data-value="unanswered">Unanswered</button>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Links:</span>
+      <input type="range" id="linkThreshold" min="0" max="1" step="0.05" value="0.35" style="width: 120px;">
+      <span id="linkThresholdValue" style="font-size: 11px; color: #9ca3af;">0.35</span>
+    </div>
+  </div>
+
+  <main>
+    <div id="graphWrap">
+      <svg id="graphSvg"></svg>
+      <div class="minimap">
+        <div class="minimap-title">Overview</div>
+        <canvas id="minimapCanvas"></canvas>
+      </div>
+      <div id="legend">
+        <div><strong>X-axis:</strong> BEING → HAVING → DOING → INTERACTING</div>
+        <div><strong>Y-axis:</strong> Fundamental needs (Max-Neef)</div>
+        <div><strong>Color:</strong> Blue (strategic) → Yellow (execution)</div>
+      </div>
+    </div>
+
+    <aside id="panel">
+      <div id="tabs">
+        <button class="active" data-tab="question">Question</button>
+        <button data-tab="rooms">Thinking Rooms</button>
+        <button data-tab="analytics">Analytics</button>
+      </div>
+
+      <div class="tab-content active" id="questionTab">
+        <h2 id="panelTitle">Select a question</h2>
+        <pre id="panelBody">Click a point on the map to view details</pre>
+
+        <div id="responseSection" style="display: none;">
+          <div class="section-title">
+            Answer this question
+            <span class="badge" id="questionStatusBadge"></span>
+          </div>
+          <div class="response-form">
+            <textarea id="responseText" placeholder="Type your answer here..."></textarea>
+            <div class="response-actions">
+              <button id="saveResponseBtn">Save Answer</button>
+              <button id="cancelResponseBtn" class="ghost">Cancel</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-title">Nearby questions</div>
+        <ul id="panelRelated"></ul>
+
+        <div id="linkExplainSection">
+          <div class="section-title">Connection details</div>
+          <p id="panelLinkExplain">Click a connection to see details.</p>
+        </div>
+      </div>
+
+      <div class="tab-content" id="roomsTab">
+        <div class="section-title">Thinking Rooms</div>
+        <input type="text" class="search-box" id="roomSearch" placeholder="Search rooms...">
+        <div id="roomsList"></div>
+      </div>
+
+      <div class="tab-content" id="analyticsTab">
+        <div class="section-title">Analytics</div>
+        <div id="analyticsContent"></div>
+      </div>
+    </aside>
+  </main>
+
+  <div id="guidedModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title">Guided Question Flow</h2>
+        <button class="modal-close" id="closeGuidedModal">×</button>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="guidedProgress"></div>
+      </div>
+      <div id="guidedContent"></div>
+    </div>
+  </div>
+
+  <script src="graph.js"></script>
+</body>
+</html>
